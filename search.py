@@ -21,6 +21,7 @@ class Search:
 
     def create_index(self):
         self.es.indices.delete(index='my_documents', ignore_unavailable=True)
+        print('Deleted index my_documents')
         self.es.indices.create(
             index='my_documents',
             mappings={
@@ -39,6 +40,10 @@ class Search:
                 }
             }
         )
+        print('Created index my_documents')
+        
+    def delete_index(self):
+        self.es.indices.delete(index='my_documents', ignore_unavailable=True)
 
     
     def insert_document(self, document):
@@ -54,14 +59,6 @@ class Search:
 
     def reindex(self):
         self.create_index()
-        with open('data.json', 'rt') as f:
-            documents = json.loads(f.read())
-            for doc in documents:
-                url = doc['download_url']
-                response = requests.get(url)
-                doc['page_content'] = str(response.content)
-                
-        return self.insert_documents(documents)
     
     def search(self, **query_args):
         return self.es.search(index='my_documents', **query_args)
@@ -87,22 +84,22 @@ class Search:
         self.es.ml.start_trained_model_deployment(model_id='.elser_model_1')
 
         # define a pipeline
-        self.es.ingest.put_pipeline(
-            id='elser-ingest-pipeline',
-            processors=[
-                {
-                    'inference': {
-                        'model_id': '.elser_model_1',
-                        'input_output': [
-                            {
-                                'input_field': 'page_content',
-                                'output_field': 'elser_embedding',
-                            }
-                        ]
-                    }
-                }
-            ]
-        )
+        # self.es.ingest.put_pipeline(
+        #     id='elser-ingest-pipeline',
+        #     processors=[
+        #         {
+        #             'inference': {
+        #                 'model_id': '.elser_model_1',
+        #                 'input_output': [
+        #                     {
+        #                         'input_field': 'page_content',
+        #                         'output_field': 'elser_embedding',
+        #                     }
+        #                 ]
+        #             }
+        #         }
+        #     ]
+        # )
         
     def delete_elser(self):
         self.es.ml.delete_trained_model(model_id='.elser_model_1', force=True)

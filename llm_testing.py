@@ -13,25 +13,30 @@ from search import Search
 
 set_debug(True)
 set_verbose(True)
-es = Search()
 
 bedrock_client = boto3.client(
     service_name="bedrock-runtime", region_name="us-east-1")
 embeddings = BedrockEmbeddings(client=bedrock_client)
 
+es_instance = Elasticsearch(hosts="http://localhost:9200",connections_per_node=5,request_timeout=600.0)
 
 vector_store = ElasticsearchStore(
-    es_connection=Elasticsearch(hosts="http://localhost:9200",connections_per_node=5),
+    es_connection=es_instance,
     index_name="my_documents",
     embedding=embeddings,
     strategy=ElasticsearchStore.SparseVectorRetrievalStrategy(),
 )
 
-documents = es.reindex()
+
+with open('data.json', 'rt') as f:
+    documents = json.loads(f.read())
+    for doc in documents:
+        url = doc['download_url']
+        response = requests.get(url)
+        doc['page_content'] = str(response.content)
 
 metadata = []
 content = []
-
 for doc in documents:
     doc_content = str(doc['page_content'])
     content.append(doc_content)
@@ -45,15 +50,12 @@ text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
     chunk_size=512, chunk_overlap=256
 )
 docs = text_splitter.create_documents(content, metadatas=metadata)
-
 vector_store.from_documents(
     documents=docs,
-    es_connection=Elasticsearch(hosts="http://localhost:9200",connections_per_node=5),
+    es_connection=es_instance,
     index_name="my_documents",
     strategy=ElasticsearchStore.SparseVectorRetrievalStrategy(),
 )
-
-
 
 default_model_id = "anthropic.claude-v2:1"
 AWS_MODEL_ID = input(f"AWS model [default: {default_model_id}]: ") or default_model_id
@@ -65,7 +67,7 @@ qa = RetrievalQA.from_llm(llm=llm, retriever=retriever,
                           return_source_documents=True)
 
 questions = [
-    "How do I use 'append' ingest pipeline processor?",
+    "How do I use an 'append' processor?",
 ]
 question = questions[0]
 print(f"Question: {question}\n")
