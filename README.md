@@ -1,4 +1,4 @@
-# Vectorsearch the Ingest pipeline processor docs using LLM and RAG
+# Vectorsearch the Ingest pipeline processor docs using Bedrock client and ELSER model
 
 This project tests vector search by downloading each of the ingest pipeline processor docs, run them through embeddings and adding them to Elasticsearch, so the LLM can look up processor specific docs.
 
