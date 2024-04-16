@@ -1,4 +1,6 @@
-# Elasticsearch Search Tutorial
+# Vectorsearch the Ingest pipeline processor docs using LLM and RAG
+
+This project tests vector search by downloading each of the ingest pipeline processor docs, run them through embeddings and adding them to Elasticsearch, so the LLM can look up processor specific docs.
 
 This directory contains a starter Flask project used in the Search tutorial.
 
