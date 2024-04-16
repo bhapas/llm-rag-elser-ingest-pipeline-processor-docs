@@ -6,17 +6,20 @@ import requests
 import urllib3
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
+from llm_testing import create_vector_store
 
 load_dotenv()
-
 
 class Search:
     
     def __init__(self):
-        self.es = Elasticsearch(hosts="http://localhost:9200",connections_per_node=15)  # <-- connection options need to be added here
+        self.es = Elasticsearch(hosts="http://localhost:9200",connections_per_node=15, request_timeout=600.0)  # <-- connection options need to be added here
         client_info = self.es.info()
         print('Connected to Elasticsearch!')
         pprint(client_info.body)
+        print('Creating a vector store...')
+        self.qa = create_vector_store(self.es)
+        print('Created a vector store')
 
 
     def create_index(self):
@@ -67,7 +70,7 @@ class Search:
         return self.es.get(index='my_documents', id=id)
     
     def deploy_elser(self):
-        # download ELSER v2
+        # download ELSER model
         self.es.ml.put_trained_model(model_id='.elser_model_1',
                                      input={'field_names': ['text_field']})
         
@@ -82,24 +85,6 @@ class Search:
 
         # deploy the model
         self.es.ml.start_trained_model_deployment(model_id='.elser_model_1')
-
-        # define a pipeline
-        # self.es.ingest.put_pipeline(
-        #     id='elser-ingest-pipeline',
-        #     processors=[
-        #         {
-        #             'inference': {
-        #                 'model_id': '.elser_model_1',
-        #                 'input_output': [
-        #                     {
-        #                         'input_field': 'page_content',
-        #                         'output_field': 'elser_embedding',
-        #                     }
-        #                 ]
-        #             }
-        #         }
-        #     ]
-        # )
         
-    def delete_elser(self):
+    def delete_elser(self): # Don't run this unless you need a new model deployment
         self.es.ml.delete_trained_model(model_id='.elser_model_1', force=True)

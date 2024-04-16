@@ -1,12 +1,11 @@
 import re
 import requests
 import urllib3
-
+from llm_testing import run_llm_test
 
 from flask import Flask, render_template, request
 from search import Search
 
-urllib3.PoolManager(num_pools=50)
 app = Flask(__name__)
 es = Search()
 
@@ -19,17 +18,17 @@ def index():
 def handle_search():
     query = request.form.get('query', '')
     from_ = request.form.get('from_', type=int, default=0)
-    results = es.search(
-       query={
-            'multi_match': {
-                'query': query,
-                'fields': ['name', 'path', 'download_url','content'],
-            }
-        }, size=10, from_=from_
-    )
-    return render_template('index.html', results=results['hits']['hits'],
-                           query=query, from_=from_,
-                           total=results['hits']['total']['value'])
+    results = run_llm_test(es.qa,query)
+    # results = es.search(
+    #    query={
+    #         'multi_match': {
+    #             'query': query,
+    #             'fields': ['name', 'path', 'download_url','content'],
+    #         }
+    #     }, size=10, from_=from_
+    # )
+    return render_template('index.html', results=(results['result']+ "\n"),
+                           query=query, from_=from_, total=1)
 
 
 
@@ -42,13 +41,6 @@ def get_document(id):
 
     return render_template('document.html', title=title, paragraphs=response)
 
-
-@app.cli.command()
-def reindex():
-    """Regenerate the Elasticsearch index."""
-    response = es.reindex()
-    print(f'Index with {len(response["items"])} documents created '
-          f'in {response["took"]} milliseconds.')
 
 @app.cli.command()
 def deploy_elser():
